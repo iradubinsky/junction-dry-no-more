@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dry No More Junction — Map</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Kaushan+Script&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root {
+    --green-deep: #123B27;
+    --green-mid: #1D5138;
+    --pink: #FEB5B2;
+    --gold: #C99A4A;
+    --cream: #F4EDE4;
+    --rust: #B4592E;
+    --plum: #6E4A63;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: 'Work Sans', sans-serif;
+    background: var(--green-deep);
+    color: var(--cream);
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  header {
+    padding: 16px 20px 12px;
+    background: var(--green-deep);
+    border-bottom: 1px solid rgba(244,237,228,0.12);
+    z-index: 500;
+  }
+
+  h1 {
+    font-family: 'Anton', sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    font-size: clamp(20px, 4vw, 28px);
+    margin: 0 0 2px;
+    color: var(--cream);
+    text-transform: uppercase;
+  }
+
+  h1 span {
+    font-family: 'Kaushan Script', cursive;
+    text-transform: none;
+    color: var(--pink);
+    font-size: 0.75em;
+    margin-left: 6px;
+  }
+
+  .subline {
+    font-size: 13px;
+    color: rgba(244,237,228,0.6);
+    margin-bottom: 12px;
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(244,237,228,0.25);
+    background: transparent;
+    color: var(--cream);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: 'Work Sans', sans-serif;
+  }
+
+  .chip:hover { border-color: var(--pink); }
+
+  .chip.active {
+    background: var(--pink);
+    border-color: var(--pink);
+    color: var(--green-deep);
+  }
+
+  .chip .glyph { font-size: 14px; line-height: 1; }
+
+  /* Swatch-backed category glyph — keeps contrast consistent whether it
+     sits on the cream pin bubble or the dark green popup tag pill,
+     since the circle's own color does the contrast work, not the emoji. */
+  .glyph-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 19px;
+    height: 19px;
+    border-radius: 50%;
+    font-size: 11px;
+    line-height: 1;
+    box-shadow: 0 0 0 1px rgba(244,237,228,0.55), 0 1px 2px rgba(0,0,0,0.3);
+    flex-shrink: 0;
+  }
+
+  .popup-tags .glyph-chip {
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+  }
+
+  .count {
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--gold);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  #map {
+    flex: 1;
+    width: 100%;
+  }
+
+  /* Custom pin */
+  .pin-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pin-bubble {
+    background: var(--cream);
+    border: 2px solid var(--green-deep);
+    border-radius: 999px;
+    padding: 5px 8px;
+    display: flex;
+    gap: 3px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    white-space: nowrap;
+  }
+
+  .pin-bubble .glyph {
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  .pin-point {
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid var(--green-deep);
+    margin-top: -1px;
+  }
+
+  /* Popup styling */
+  .leaflet-popup-content-wrapper {
+    background: var(--cream);
+    color: var(--green-deep);
+    border-radius: 10px;
+  }
+
+  .leaflet-popup-tip { background: var(--cream); }
+
+  .popup-name {
+    font-family: 'Anton', sans-serif;
+    font-size: 17px;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    margin-bottom: 2px;
+  }
+
+  .popup-address {
+    font-size: 12px;
+    color: rgba(18,59,39,0.65);
+    margin-bottom: 8px;
+  }
+
+  .popup-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+
+  .popup-tags span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--green-deep);
+    color: var(--cream);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px 3px 3px;
+    border-radius: 999px;
+  }
+
+  .popup-desc {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .leaflet-control-attribution {
+    font-size: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>Dry No More Junction<span>the map</span></h1>
+    <div class="subline">Saturday, October XX · Dundas St W, The Junction</div>
+    <div class="filters" id="filters">
+      <span class="count" id="count"></span>
+    </div>
+  </header>
+  <div id="map"></div>
+</div>
+
+<script>
+  // ---- SAMPLE DATA -----------------------------------------------------
+  // This mirrors the columns in the "JunctionDryNoMore - business signups"
+  // sheet: Business Name, Address, Categories, Description/Notes, Lat, Long.
+  // Categories is an array here (comma-separated in the sheet).
+  // NOTE: Stu's store has no lat/long in the sheet yet, so its coordinates
+  // below are a rough placeholder near Dundas St W just so it renders —
+  // swap in the real geocoded value once you have it.
+  const businesses = [
+    {
+      name: "Ira's store",
+      address: "1234 Dundas St W",
+      categories: ["Shopping", "Cocktails"],
+      description: "A fun night of vintage shopping with a special bourbon cocktail.",
+      lat: 43.66561064784716,
+      lng: -79.47318013099122
+    },
+    {
+      name: "Stu's store",
+      address: "3456 Dundas St W",
+      categories: ["Live Music"],
+      description: "Jazz concert featuring Renee Bloom.",
+      lat: 43.66601,      // placeholder — no lat/long in sheet yet
+      lng: -79.46980       // placeholder — no lat/long in sheet yet
+    }
+  ];
+
+  // ---- CATEGORY LOOKUP ---------------------------------------------------
+  // Add new categories here as they come up — everything else (chips,
+  // pin icons, popup tags) reads from this one object.
+  const CATEGORY_META = {
+    "Cocktails":       { glyph: "🍸", swatch: "var(--pink)" },
+    "Food & Dining":   { glyph: "🍽️", swatch: "var(--gold)" },
+    "Shopping":        { glyph: "🛍️", swatch: "var(--rust)" },
+    "Live Music":      { glyph: "🎸", swatch: "var(--green-mid)" },
+    "Family Friendly": { glyph: "👪", swatch: "var(--plum)" },
+    "Other":           { glyph: "✨", swatch: "var(--green-deep)" }
+  };
+  const DEFAULT_META = { glyph: "📍", swatch: "var(--green-deep)" };
+
+  function metaFor(cat) {
+    return CATEGORY_META[cat] || DEFAULT_META;
+  }
+
+  function glyphFor(cat) {
+    return metaFor(cat).glyph;
+  }
+
+  // Renders a category glyph inside a colored swatch circle, so it reads
+  // clearly whether it lands on the cream pin bubble or a dark tag pill.
+  function chipHtml(cat) {
+    const m = metaFor(cat);
+    return `<span class="glyph-chip" style="background:${m.swatch}">${m.glyph}</span>`;
+  }
+
+  // ---- MAP SETUP -----------------------------------------------------
+  const map = L.map('map', { zoomControl: true }).setView([43.6656, -79.4700], 15);
+
+  L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '&copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors',
+    maxZoom: 16
+  }).addTo(map);
+
+  L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 16,
+    pane: 'shadowPane' // keeps labels above markers' shadow but doesn't block popups
+  }).addTo(map);
+
+  // One layerGroup per business marker so filtering is just add/remove
+  const markerEntries = [];
+
+  function makeIcon(biz) {
+    const glyphs = biz.categories.map(c => chipHtml(c)).join('');
+    const html = `
+      <div class="pin-wrap">
+        <div class="pin-bubble">${glyphs}</div>
+        <div class="pin-point"></div>
+      </div>`;
+    return L.divIcon({
+      html,
+      className: '',
+      iconSize: null,
+      iconAnchor: [24, 46]
+    });
+  }
+
+  businesses.forEach(biz => {
+    const tags = biz.categories.map(c => `<span>${chipHtml(c)} ${c}</span>`).join('');
+    const popupHtml = `
+      <div class="popup-name">${biz.name}</div>
+      <div class="popup-address">${biz.address}</div>
+      <div class="popup-tags">${tags}</div>
+      <div class="popup-desc">${biz.description}</div>
+    `;
+    const marker = L.marker([biz.lat, biz.lng], { icon: makeIcon(biz) }).bindPopup(popupHtml);
+    markerEntries.push({ biz, marker, group: L.layerGroup([marker]).addTo(map) });
+  });
+
+  // ---- FILTER CHIPS -----------------------------------------------------
+  const allCategories = [...new Set(businesses.flatMap(b => b.categories))].sort();
+  const filtersEl = document.getElementById('filters');
+  const countEl = document.getElementById('count');
+  let active = new Set(); // empty set = show all
+
+  function renderChips() {
+    filtersEl.querySelectorAll('.chip').forEach(el => el.remove());
+
+    const allChip = document.createElement('button');
+    allChip.className = 'chip' + (active.size === 0 ? ' active' : '');
+    allChip.textContent = 'All';
+    allChip.onclick = () => { active.clear(); update(); };
+    filtersEl.insertBefore(allChip, countEl);
+
+    allCategories.forEach(cat => {
+      const chip = document.createElement('button');
+      chip.className = 'chip' + (active.has(cat) ? ' active' : '');
+      chip.innerHTML = `${chipHtml(cat)} ${cat}`;
+      chip.onclick = () => {
+        if (active.has(cat)) active.delete(cat); else active.add(cat);
+        update();
+      };
+      filtersEl.insertBefore(chip, countEl);
+    });
+  }
+
+  function update() {
+    let shown = 0;
+    markerEntries.forEach(({ biz, group }) => {
+      const match = active.size === 0 || biz.categories.some(c => active.has(c));
+      if (match) { if (!map.hasLayer(group)) group.addTo(map); shown++; }
+      else { if (map.hasLayer(group)) map.removeLayer(group); }
+    });
+    countEl.textContent = `${shown} of ${businesses.length} stops`;
+    renderChips();
+  }
+
+  update();
+</script>
+
+</body>
+</html>
