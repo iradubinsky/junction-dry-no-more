@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Junction Dry No More: The Map</title>
+<title>Junction Dry No More: the map</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Kaushan+Script&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
   :root {
     --green-deep: #123B27;
@@ -66,6 +67,15 @@
     color: rgba(244,237,228,0.6);
     margin-bottom: 12px;
   }
+
+  .status {
+    font-size: 13px;
+    color: var(--pink);
+    margin-bottom: 10px;
+    display: none;
+  }
+
+  .status.visible { display: block; }
 
   .filters {
     display: flex;
@@ -225,6 +235,7 @@
   <header>
     <h1>Junction Dry No More <span>the map</span></h1>
     <div class="subline">October 2-4, 2026 · Dundas St W, The Junction</div>
+    <div class="status" id="status"></div>
     <div class="filters" id="filters">
       <span class="count" id="count"></span>
     </div>
@@ -233,31 +244,12 @@
 </div>
 
 <script>
-  // ---- SAMPLE DATA -----------------------------------------------------
-  // This mirrors the columns in the "JunctionDryNoMore - business signups"
-  // sheet: Business Name, Address, Categories, Description/Notes, Lat, Long.
-  // Categories is an array here (comma-separated in the sheet).
-  // NOTE: Stu's store has no lat/long in the sheet yet, so its coordinates
-  // below are a rough placeholder near Dundas St W just so it renders —
-  // swap in the real geocoded value once you have it.
-  const businesses = [
-    {
-      name: "Ira's store",
-      address: "1234 Dundas St W",
-      categories: ["Shopping", "Cocktails"],
-      description: "A fun night of vintage shopping with a special bourbon cocktail.",
-      lat: 43.66561064784716,
-      lng: -79.47318013099122
-    },
-    {
-      name: "Stu's store",
-      address: "3456 Dundas St W",
-      categories: ["Live Music"],
-      description: "Jazz concert featuring Renee Bloom.",
-      lat: 43.66601,      // placeholder — no lat/long in sheet yet
-      lng: -79.46980       // placeholder — no lat/long in sheet yet
-    }
-  ];
+  // ---- LIVE DATA SOURCE -----------------------------------------------
+  // Published "MapData" tab — public-safe columns only (no contact info,
+  // no payment status). Update this URL if you ever re-publish the sheet.
+  const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQfbGHIRiCUphEvLZwPXaXVNtxAVdup9V_XA8WLex6-F0v1EzbJyv6wj08W7hnwhW_DmT0soQDBi020/pub?gid=1832906400&single=true&output=csv';
+
+  let businesses = [];
 
   // ---- CATEGORY LOOKUP ---------------------------------------------------
   // Add new categories here as they come up — everything else (chips,
@@ -271,6 +263,19 @@
     "Other":           { glyph: "✨", swatch: "var(--green-deep)" }
   };
   const DEFAULT_META = { glyph: "📍", swatch: "var(--green-deep)" };
+
+  // The live form's option text may drift slightly from these canonical
+  // names (e.g. "Shopping event" instead of "Shopping"). Map any known
+  // variant to its canonical key here rather than editing CATEGORY_META.
+  const CATEGORY_ALIASES = {
+    "shopping event": "Shopping"
+  };
+
+  function canonicalCategory(raw) {
+    const trimmed = raw.trim();
+    const alias = CATEGORY_ALIASES[trimmed.toLowerCase()];
+    return alias || trimmed;
+  }
 
   function metaFor(cat) {
     return CATEGORY_META[cat] || DEFAULT_META;
@@ -302,6 +307,11 @@
 
   // One layerGroup per business marker so filtering is just add/remove
   const markerEntries = [];
+  const filtersEl = document.getElementById('filters');
+  const countEl = document.getElementById('count');
+  const statusEl = document.getElementById('status');
+  let active = new Set(); // empty set = show all
+  let allCategories = [];
 
   function makeIcon(biz) {
     const glyphs = biz.categories.map(c => chipHtml(c)).join('');
@@ -318,23 +328,20 @@
     });
   }
 
-  businesses.forEach(biz => {
-    const tags = biz.categories.map(c => `<span>${chipHtml(c)} ${c}</span>`).join('');
-    const popupHtml = `
-      <div class="popup-name">${biz.name}</div>
-      <div class="popup-address">${biz.address}</div>
-      <div class="popup-tags">${tags}</div>
-      <div class="popup-desc">${biz.description}</div>
-    `;
-    const marker = L.marker([biz.lat, biz.lng], { icon: makeIcon(biz) }).bindPopup(popupHtml);
-    markerEntries.push({ biz, marker, group: L.layerGroup([marker]).addTo(map) });
-  });
-
-  // ---- FILTER CHIPS -----------------------------------------------------
-  const allCategories = [...new Set(businesses.flatMap(b => b.categories))].sort();
-  const filtersEl = document.getElementById('filters');
-  const countEl = document.getElementById('count');
-  let active = new Set(); // empty set = show all
+  function renderMarkers() {
+    businesses.forEach(biz => {
+      const tags = biz.categories.map(c => `<span>${chipHtml(c)} ${c}</span>`).join('');
+      const popupHtml = `
+        <div class="popup-name">${biz.name}</div>
+        <div class="popup-address">${biz.address}</div>
+        <div class="popup-tags">${tags}</div>
+        <div class="popup-desc">${biz.description}</div>
+      `;
+      const marker = L.marker([biz.lat, biz.lng], { icon: makeIcon(biz) }).bindPopup(popupHtml);
+      markerEntries.push({ biz, marker, group: L.layerGroup([marker]).addTo(map) });
+    });
+    allCategories = [...new Set(businesses.flatMap(b => b.categories))].sort();
+  }
 
   function renderChips() {
     filtersEl.querySelectorAll('.chip').forEach(el => el.remove());
@@ -364,11 +371,69 @@
       if (match) { if (!map.hasLayer(group)) group.addTo(map); shown++; }
       else { if (map.hasLayer(group)) map.removeLayer(group); }
     });
-    countEl.textContent = `${shown} of ${businesses.length} stops`;
+    countEl.textContent = businesses.length ? `${shown} of ${businesses.length} stops` : '';
     renderChips();
   }
 
-  update();
+  function showStatus(msg) {
+    statusEl.textContent = msg;
+    statusEl.classList.add('visible');
+  }
+
+  // ---- LOAD LIVE DATA FROM THE PUBLISHED SHEET --------------------------
+  // Column names must match your MapData tab's header row exactly.
+  fetch(SHEET_CSV_URL + '&cachebust=' + Date.now())
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.text();
+    })
+    .then(csvText => {
+      const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+
+      let skippedNoCoords = 0;
+      let skippedNoCategory = [];
+
+      businesses = parsed.data
+        .map(row => {
+          const name = (row['Business Name'] || '').trim();
+          const address = (row['Business Address'] || '').trim();
+          const description = (row['Description/Notes'] || '').trim();
+          const rawCats = (row['Categories (choose all that apply)'] || '');
+          const categories = rawCats.split(',').map(canonicalCategory).filter(Boolean);
+          const lat = parseFloat(row['Lat']);
+          const lng = parseFloat(row['Long']);
+
+          categories.forEach(c => {
+            if (!CATEGORY_META[c] && !skippedNoCategory.includes(c)) skippedNoCategory.push(c);
+          });
+
+          return { name, address, description, categories, lat, lng };
+        })
+        .filter(biz => {
+          if (!biz.name) return false;
+          if (isNaN(biz.lat) || isNaN(biz.lng)) { skippedNoCoords++; return false; }
+          return true;
+        });
+
+      if (businesses.length === 0) {
+        showStatus(skippedNoCoords > 0
+          ? `${skippedNoCoords} sign-up(s) found, but none have Lat/Long yet — run the geocoding script.`
+          : 'No sign-ups yet — the map will fill in as businesses register.');
+      } else if (skippedNoCoords > 0) {
+        showStatus(`Showing ${businesses.length} — ${skippedNoCoords} more sign-up(s) are missing Lat/Long.`);
+      }
+
+      if (skippedNoCategory.length > 0) {
+        console.warn('Unrecognized categories (showing generic pin icon):', skippedNoCategory);
+      }
+
+      renderMarkers();
+      update();
+    })
+    .catch(err => {
+      showStatus('Could not load business data from the sheet — check the published CSV link.');
+      console.error('Failed to load MapData sheet:', err);
+    });
 </script>
 
 </body>
