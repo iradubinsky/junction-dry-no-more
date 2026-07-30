@@ -371,7 +371,7 @@
       if (match) { if (!map.hasLayer(group)) group.addTo(map); shown++; }
       else { if (map.hasLayer(group)) map.removeLayer(group); }
     });
-    countEl.textContent = businesses.length ? `${shown} of ${businesses.length} stops` : '';
+    countEl.textContent = businesses.length ? `${shown} of ${businesses.length} activations` : '';
     renderChips();
   }
 
@@ -420,7 +420,7 @@
           ? `${skippedNoCoords} sign-up(s) found, but none have Lat/Long yet — run the geocoding script.`
           : 'No sign-ups yet — the map will fill in as businesses register.');
       } else if (skippedNoCoords > 0) {
-        showStatus(`Showing ${businesses.length} — ${skippedNoCoords} more sign-up(s) are missing Lat/Long.`);
+        showStatus(`Showing ${businesses.length} — ${skippedNoCoords} more activations are pending.`);
       }
 
       if (skippedNoCategory.length > 0) {
