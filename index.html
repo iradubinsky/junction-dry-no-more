@@ -6,11 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Kaushan+Script&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Kaushan+Script&family=Ultra&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --green-bg: #123B27;
-    --green-deep: #0C2A1B;
+    --burgundy-bg: #5A1620;
+    --burgundy-deep: #3D0E15;
     --pink: #FEB5B2;
     --cream: #F4EDE4;
     --gold: #C99A4A;
@@ -19,7 +19,7 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    background: var(--green-bg);
+    background: var(--burgundy-bg);
     background-image:
       radial-gradient(circle at 15% 10%, rgba(254,181,178,0.05), transparent 40%),
       radial-gradient(circle at 85% 90%, rgba(201,154,74,0.06), transparent 45%);
@@ -48,11 +48,11 @@
   }
 
   .date-line {
-    font-family: 'Anton', sans-serif;
+    font-family: 'Ultra', serif;
     font-weight: 400;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
     color: var(--pink);
-    font-size: clamp(28px, 6vw, 44px);
+    font-size: clamp(22px, 5vw, 36px);
     margin-top: 28px;
     text-transform: uppercase;
   }
@@ -85,7 +85,7 @@
   }
 
   .info-pill {
-    background: var(--green-deep);
+    background: var(--burgundy-deep);
     border: 1px solid rgba(254,181,178,0.2);
     border-radius: 999px;
     padding: 10px 20px;
@@ -118,7 +118,7 @@
   .cta {
     display: inline-block;
     background: var(--pink);
-    color: var(--green-deep);
+    color: var(--burgundy-deep);
     font-weight: 600;
     font-size: 15px;
     letter-spacing: 0.02em;
