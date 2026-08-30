@@ -12,9 +12,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
   :root {
-    --burgundy-bg: #5A1620;
-    --burgundy-deep: #3D0E15;
-    --teal: #2C6E64;
+    --green-deep: #123B27;
+    --green-mid: #1D5138;
     --pink: #FEB5B2;
     --gold: #C99A4A;
     --cream: #F4EDE4;
@@ -28,7 +27,7 @@
     margin: 0;
     height: 100%;
     font-family: 'Work Sans', sans-serif;
-    background: var(--burgundy-bg);
+    background: var(--green-deep);
     color: var(--cream);
   }
 
@@ -40,7 +39,7 @@
 
   header {
     padding: 16px 20px 12px;
-    background: var(--burgundy-bg);
+    background: var(--green-deep);
     border-bottom: 1px solid rgba(244,237,228,0.12);
     z-index: 500;
   }
@@ -106,13 +105,13 @@
   .chip.active {
     background: var(--pink);
     border-color: var(--pink);
-    color: var(--burgundy-deep);
+    color: var(--green-deep);
   }
 
   .chip .glyph { font-size: 14px; line-height: 1; }
 
   /* Swatch-backed category glyph — keeps contrast consistent whether it
-     sits on the cream pin bubble or the dark burgundy popup tag pill,
+     sits on the cream pin bubble or the dark green popup tag pill,
      since the circle's own color does the contrast work, not the emoji. */
   .glyph-chip {
     display: inline-flex;
@@ -155,7 +154,7 @@
 
   .pin-bubble {
     background: var(--cream);
-    border: 2px solid var(--burgundy-deep);
+    border: 2px solid var(--green-deep);
     border-radius: 999px;
     padding: 5px 8px;
     display: flex;
@@ -174,14 +173,14 @@
     height: 0;
     border-left: 6px solid transparent;
     border-right: 6px solid transparent;
-    border-top: 8px solid var(--burgundy-deep);
+    border-top: 8px solid var(--green-deep);
     margin-top: -1px;
   }
 
   /* Popup styling */
   .leaflet-popup-content-wrapper {
     background: var(--cream);
-    color: var(--burgundy-deep);
+    color: var(--green-deep);
     border-radius: 10px;
   }
 
@@ -197,7 +196,7 @@
 
   .popup-address {
     font-size: 12px;
-    color: rgba(61,14,21,0.65);
+    color: rgba(18,59,39,0.65);
     margin-bottom: 8px;
   }
 
@@ -212,7 +211,7 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    background: var(--burgundy-deep);
+    background: var(--green-deep);
     color: var(--cream);
     font-size: 11px;
     font-weight: 600;
@@ -259,11 +258,11 @@
     "Cocktails":       { glyph: "🍸", swatch: "var(--pink)" },
     "Food & Drink":   { glyph: "🍽️", swatch: "var(--gold)" },
     "Shopping":        { glyph: "🛍️", swatch: "var(--rust)" },
-    "Live Music":      { glyph: "🎸", swatch: "var(--teal)" },
+    "Live Music":      { glyph: "🎸", swatch: "var(--green-mid)" },
     "Family Friendly": { glyph: "👪", swatch: "var(--plum)" },
-    "Other":           { glyph: "✨", swatch: "var(--burgundy-deep)" }
+    "Other":           { glyph: "✨", swatch: "var(--green-deep)" }
   };
-  const DEFAULT_META = { glyph: "📍", swatch: "var(--burgundy-deep)" };
+  const DEFAULT_META = { glyph: "📍", swatch: "var(--green-deep)" };
 
   // The live form's option text may drift slightly from these canonical
   // names (e.g. "Shopping event" instead of "Shopping"). Map any known
