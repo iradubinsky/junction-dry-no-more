@@ -11,431 +11,467 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
-  :root {
-    --burgundy-bg: #5A1620;
-    --burgundy-deep: #3D0E15;
-    --teal: #2C6E64;
-    --pink: #FEB5B2;
-    --gold: #C99A4A;
-    --cream: #F4EDE4;
-    --rust: #B4592E;
-    --plum: #6E4A63;
-  }
-
-  * { box-sizing: border-box; }
-
-  html, body {
-    margin: 0;
-    height: 100%;
-    font-family: 'Work Sans', sans-serif;
-    background: var(--burgundy-bg);
-    color: var(--cream);
-  }
-
-  .app {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
-
-  header {
-    padding: 16px 20px 12px;
-    background: var(--burgundy-bg);
-    border-bottom: 1px solid rgba(244,237,228,0.12);
-    z-index: 500;
-  }
-
-  h1 {
-    font-family: 'Anton', sans-serif;
-    font-weight: 400;
-    letter-spacing: 0.02em;
-    font-size: clamp(20px, 4vw, 28px);
-    margin: 0 0 2px;
-    color: var(--cream);
-    text-transform: uppercase;
-  }
-
-  h1 span {
-    font-family: 'Kaushan Script', cursive;
-    text-transform: none;
-    color: var(--pink);
-    font-size: 0.75em;
-    margin-left: 6px;
-  }
-
-  .subline {
-    font-size: 13px;
-    color: rgba(244,237,228,0.6);
-    margin-bottom: 12px;
-  }
-
-  .status {
-    font-size: 13px;
-    color: var(--pink);
-    margin-bottom: 10px;
-    display: none;
-  }
-
-  .status.visible { display: block; }
-
-  .filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    border-radius: 999px;
-    border: 1px solid rgba(244,237,228,0.25);
-    background: transparent;
-    color: var(--cream);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    font-family: 'Work Sans', sans-serif;
-  }
-
-  .chip:hover { border-color: var(--pink); }
-
-  .chip.active {
-    background: var(--pink);
-    border-color: var(--pink);
-    color: var(--burgundy-deep);
-  }
-
-  .chip .glyph { font-size: 14px; line-height: 1; }
-
-  /* Swatch-backed category glyph — keeps contrast consistent whether it
-     sits on the cream pin bubble or the dark burgundy popup tag pill,
-     since the circle's own color does the contrast work, not the emoji. */
-  .glyph-chip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 19px;
-    height: 19px;
-    border-radius: 50%;
-    font-size: 11px;
-    line-height: 1;
-    box-shadow: 0 0 0 1px rgba(244,237,228,0.55), 0 1px 2px rgba(0,0,0,0.3);
-    flex-shrink: 0;
-  }
-
-  .popup-tags .glyph-chip {
-    width: 16px;
-    height: 16px;
-    font-size: 10px;
-  }
-
-  .count {
-    margin-left: auto;
-    font-size: 13px;
-    color: var(--gold);
-    font-weight: 600;
-    white-space: nowrap;
-  }
-
-  #map {
-    flex: 1;
-    width: 100%;
-  }
-
-  /* Custom pin */
-  .pin-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .pin-bubble {
-    background: var(--cream);
-    border: 2px solid var(--burgundy-deep);
-    border-radius: 999px;
-    padding: 5px 8px;
-    display: flex;
-    gap: 3px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-    white-space: nowrap;
-  }
-
-  .pin-bubble .glyph {
-    font-size: 15px;
-    line-height: 1;
-  }
-
-  .pin-point {
-    width: 0;
-    height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 8px solid var(--burgundy-deep);
-    margin-top: -1px;
-  }
-
-  /* Popup styling */
-  .leaflet-popup-content-wrapper {
-    background: var(--cream);
-    color: var(--burgundy-deep);
-    border-radius: 10px;
-  }
-
-  .leaflet-popup-tip { background: var(--cream); }
-
-  .popup-name {
-    font-family: 'Anton', sans-serif;
-    font-size: 17px;
-    text-transform: uppercase;
-    letter-spacing: 0.01em;
-    margin-bottom: 2px;
-  }
-
-  .popup-address {
-    font-size: 12px;
-    color: rgba(61,14,21,0.65);
-    margin-bottom: 8px;
-  }
-
-  .popup-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-bottom: 8px;
-  }
-
-  .popup-tags span {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background: var(--burgundy-deep);
-    color: var(--cream);
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 8px 3px 3px;
-    border-radius: 999px;
-  }
-
-  .popup-desc {
-    font-size: 13px;
-    line-height: 1.5;
-  }
-
-  .leaflet-control-attribution {
-    font-size: 10px;
-  }
+:root {
+  --burgundy-bg: #5A1620;
+  --burgundy-deep: #3D0E15;
+  --teal: #2C6E64;
+  --pink: #FEB5B2;
+  --gold: #C99A4A;
+  --cream: #F4EDE4;
+  --rust: #B4592E;
+  --plum: #6E4A63;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: 'Work Sans', sans-serif;
+  background: var(--burgundy-bg);
+  color: var(--cream);
+}
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+header {
+  padding: 16px 20px 12px;
+  background: var(--burgundy-bg);
+  border-bottom: 1px solid rgba(244,237,228,0.12);
+  z-index: 500;
+}
+h1 {
+  font-family: 'Anton', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  font-size: clamp(20px, 4vw, 28px);
+  margin: 0 0 2px;
+  color: var(--cream);
+  text-transform: uppercase;
+}
+h1 span {
+  font-family: 'Kaushan Script', cursive;
+  text-transform: none;
+  color: var(--pink);
+  font-size: 0.75em;
+  margin-left: 6px;
+}
+.subline {
+  font-size: 13px;
+  color: rgba(244,237,228,0.6);
+  margin-bottom: 12px;
+}
+.status {
+  font-size: 13px;
+  color: var(--pink);
+  margin-bottom: 10px;
+  display: none;
+}
+.status.visible { display: block; }
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(244,237,228,0.25);
+  background: transparent;
+  color: var(--cream);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: 'Work Sans', sans-serif;
+}
+.chip:hover { border-color: var(--pink); }
+.chip.active {
+  background: var(--pink);
+  border-color: var(--pink);
+  color: var(--burgundy-deep);
+}
+.chip .glyph { font-size: 14px; line-height: 1; }
+/* Swatch-backed category glyph — keeps contrast consistent whether it
+   sits on the cream pin bubble or the dark burgundy popup tag pill,
+   since the circle's own color does the contrast work, not the emoji. */
+.glyph-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  font-size: 11px;
+  line-height: 1;
+  box-shadow: 0 0 0 1px rgba(244,237,228,0.55), 0 1px 2px rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+.popup-tags .glyph-chip {
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+}
+.count {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--gold);
+  font-weight: 600;
+  white-space: nowrap;
+}
+#map {
+  flex: 1;
+  width: 100%;
+  min-height: 480px;
+}
+/* Custom pin */
+.pin-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.pin-bubble {
+  background: var(--cream);
+  border: 2px solid var(--burgundy-deep);
+  border-radius: 999px;
+  padding: 5px 8px;
+  display: flex;
+  gap: 3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  white-space: nowrap;
+}
+.pin-bubble .glyph {
+  font-size: 15px;
+  line-height: 1;
+}
+.pin-point {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--burgundy-deep);
+  margin-top: -1px;
+}
+/* Popup styling */
+.leaflet-popup-content-wrapper {
+  background: var(--cream);
+  color: var(--burgundy-deep);
+  border-radius: 10px;
+}
+.leaflet-popup-tip { background: var(--cream); }
+.popup-name {
+  font-family: 'Anton', sans-serif;
+  font-size: 17px;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  margin-bottom: 2px;
+}
+.popup-address {
+  font-size: 12px;
+  color: rgba(61,14,21,0.65);
+  margin-bottom: 8px;
+}
+.popup-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.popup-tags span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--burgundy-deep);
+  color: var(--cream);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px 3px 3px;
+  border-radius: 999px;
+}
+.popup-desc {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.leaflet-control-attribution {
+  font-size: 10px;
+}
+/* ---- Event list (mirrors popup card styling) ------------------------ */
+.list-section {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+}
+.list-title {
+  font-family: 'Anton', sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  font-size: clamp(20px, 4vw, 26px);
+  text-transform: uppercase;
+  color: var(--cream);
+  margin: 0 0 4px;
+}
+.list-sub {
+  font-size: 13px;
+  color: var(--gold);
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+.event-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.event-card {
+  background: var(--cream);
+  color: var(--burgundy-deep);
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+.event-card .popup-name { margin-bottom: 2px; }
+.event-card .popup-address { margin-bottom: 8px; }
+.event-card .popup-tags { margin-bottom: 8px; }
 </style>
 </head>
 <body>
-
 <div class="app">
-  <header>
-    <h1>Junction Dry No More <span>the map</span></h1>
-    <div class="subline">October 2-4, 2026 · Dundas St W, The Junction</div>
-    <div class="status" id="status"></div>
-    <div class="filters" id="filters">
-      <span class="count" id="count"></span>
-    </div>
-  </header>
-  <div id="map"></div>
+<header>
+<h1>Junction Dry No More <span>the map</span></h1>
+<div class="subline">October 2-4, 2026 · Dundas St W, The Junction</div>
+<div class="status" id="status"></div>
+<div class="filters" id="filters">
+<span class="count" id="count"></span>
+</div>
+</header>
+<div id="map"></div>
 </div>
 
+<section class="list-section">
+  <h2 class="list-title">All Activations</h2>
+  <div class="list-sub" id="list-sub"></div>
+  <div id="event-list" class="event-list"></div>
+</section>
+
 <script>
-  // ---- LIVE DATA SOURCE -----------------------------------------------
-  // Published "MapData" tab — public-safe columns only (no contact info,
-  // no payment status). Update this URL if you ever re-publish the sheet.
-  const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQfbGHIRiCUphEvLZwPXaXVNtxAVdup9V_XA8WLex6-F0v1EzbJyv6wj08W7hnwhW_DmT0soQDBi020/pub?gid=1832906400&single=true&output=csv';
+// ---- LIVE DATA SOURCE -----------------------------------------------
+// Published "MapData" tab — public-safe columns only (no contact info,
+// no payment status). Update this URL if you ever re-publish the sheet.
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQfbGHIRiCUphEvLZwPXaXVNtxAVdup9V_XA8WLex6-F0v1EzbJyv6wj08W7hnwhW_DmT0soQDBi020/pub?gid=1832906400&single=true&output=csv';
 
-  let businesses = [];
+let businesses = [];
 
-  // ---- CATEGORY LOOKUP ---------------------------------------------------
-  // Add new categories here as they come up — everything else (chips,
-  // pin icons, popup tags) reads from this one object.
-  const CATEGORY_META = {
-    "Cocktails":       { glyph: "🍸", swatch: "var(--pink)" },
-    "Food & Drink":   { glyph: "🍽️", swatch: "var(--gold)" },
-    "Shopping":        { glyph: "🛍️", swatch: "var(--rust)" },
-    "Live Music":      { glyph: "🎸", swatch: "var(--teal)" },
-    "Family Friendly": { glyph: "👪", swatch: "var(--plum)" },
-    "Other":           { glyph: "✨", swatch: "var(--burgundy-deep)" }
-  };
-  const DEFAULT_META = { glyph: "📍", swatch: "var(--burgundy-deep)" };
+// ---- CATEGORY LOOKUP ---------------------------------------------------
+// Add new categories here as they come up — everything else (chips,
+// pin icons, popup tags) reads from this one object.
+const CATEGORY_META = {
+  "Cocktails": { glyph: "🍸", swatch: "var(--pink)" },
+  "Food & Drink": { glyph: "🍽️", swatch: "var(--gold)" },
+  "Shopping": { glyph: "🛍️", swatch: "var(--rust)" },
+  "Live Music": { glyph: "🎸", swatch: "var(--teal)" },
+  "Family Friendly": { glyph: "👪", swatch: "var(--plum)" },
+  "Other": { glyph: "✨", swatch: "var(--burgundy-deep)" }
+};
+const DEFAULT_META = { glyph: "📍", swatch: "var(--burgundy-deep)" };
 
-  // The live form's option text may drift slightly from these canonical
-  // names (e.g. "Shopping event" instead of "Shopping"). Map any known
-  // variant to its canonical key here rather than editing CATEGORY_META.
-  const CATEGORY_ALIASES = {
-    "shopping event": "Shopping"
-  };
+// The live form's option text may drift slightly from these canonical
+// names (e.g. "Shopping event" instead of "Shopping"). Map any known
+// variant to its canonical key here rather than editing CATEGORY_META.
+const CATEGORY_ALIASES = {
+  "shopping event": "Shopping"
+};
 
-  function canonicalCategory(raw) {
-    const trimmed = raw.trim();
-    const alias = CATEGORY_ALIASES[trimmed.toLowerCase()];
-    return alias || trimmed;
-  }
+function canonicalCategory(raw) {
+  const trimmed = raw.trim();
+  const alias = CATEGORY_ALIASES[trimmed.toLowerCase()];
+  return alias || trimmed;
+}
 
-  function metaFor(cat) {
-    return CATEGORY_META[cat] || DEFAULT_META;
-  }
+function metaFor(cat) {
+  return CATEGORY_META[cat] || DEFAULT_META;
+}
+function glyphFor(cat) {
+  return metaFor(cat).glyph;
+}
 
-  function glyphFor(cat) {
-    return metaFor(cat).glyph;
-  }
+// Renders a category glyph inside a colored swatch circle, so it reads
+// clearly whether it lands on the cream pin bubble or a dark tag pill.
+function chipHtml(cat) {
+  const m = metaFor(cat);
+  return `<span class="glyph-chip" style="background:${m.swatch}">${m.glyph}</span>`;
+}
 
-  // Renders a category glyph inside a colored swatch circle, so it reads
-  // clearly whether it lands on the cream pin bubble or a dark tag pill.
-  function chipHtml(cat) {
-    const m = metaFor(cat);
-    return `<span class="glyph-chip" style="background:${m.swatch}">${m.glyph}</span>`;
-  }
+// ---- MAP SETUP -----------------------------------------------------
+const map = L.map('map', { zoomControl: true }).setView([43.6656, -79.4700], 15);
 
-  // ---- MAP SETUP -----------------------------------------------------
-  const map = L.map('map', { zoomControl: true }).setView([43.6656, -79.4700], 15);
+L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+  attribution: '&copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors',
+  maxZoom: 16
+}).addTo(map);
 
-  L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-    attribution: '&copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors',
-    maxZoom: 16
-  }).addTo(map);
+L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 16,
+  pane: 'shadowPane' // keeps labels above markers' shadow but doesn't block popups
+}).addTo(map);
 
-  L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 16,
-    pane: 'shadowPane' // keeps labels above markers' shadow but doesn't block popups
-  }).addTo(map);
+// One layerGroup per business marker so filtering is just add/remove
+const markerEntries = [];
+const filtersEl = document.getElementById('filters');
+const countEl = document.getElementById('count');
+const statusEl = document.getElementById('status');
+const listEl = document.getElementById('event-list');
+const listSubEl = document.getElementById('list-sub');
 
-  // One layerGroup per business marker so filtering is just add/remove
-  const markerEntries = [];
-  const filtersEl = document.getElementById('filters');
-  const countEl = document.getElementById('count');
-  const statusEl = document.getElementById('status');
-  let active = new Set(); // empty set = show all
-  let allCategories = [];
+let active = new Set(); // empty set = show all
+let allCategories = [];
 
-  function makeIcon(biz) {
-    const glyphs = biz.categories.map(c => chipHtml(c)).join('');
-    const html = `
-      <div class="pin-wrap">
-        <div class="pin-bubble">${glyphs}</div>
-        <div class="pin-point"></div>
-      </div>`;
-    return L.divIcon({
-      html,
-      className: '',
-      iconSize: null,
-      iconAnchor: [24, 46]
-    });
-  }
+function makeIcon(biz) {
+  const glyphs = biz.categories.map(c => chipHtml(c)).join('');
+  const html = `
+    <div class="pin-wrap">
+      <div class="pin-bubble">${glyphs}</div>
+      <div class="pin-point"></div>
+    </div>`;
+  return L.divIcon({
+    html,
+    className: '',
+    iconSize: null,
+    iconAnchor: [24, 46]
+  });
+}
 
-  function renderMarkers() {
-    businesses.forEach(biz => {
-      const tags = biz.categories.map(c => `<span>${chipHtml(c)} ${c}</span>`).join('');
-      const popupHtml = `
-        <div class="popup-name">${biz.name}</div>
-        <div class="popup-address">${biz.address}</div>
-        <div class="popup-tags">${tags}</div>
-        <div class="popup-desc">${biz.description}</div>
-      `;
-      const marker = L.marker([biz.lat, biz.lng], { icon: makeIcon(biz) }).bindPopup(popupHtml);
-      markerEntries.push({ biz, marker, group: L.layerGroup([marker]).addTo(map) });
-    });
-    allCategories = [...new Set(businesses.flatMap(b => b.categories))].sort();
-  }
+function popupHtmlFor(biz) {
+  const tags = biz.categories.map(c => `<span>${chipHtml(c)} ${c}</span>`).join('');
+  return `
+    <div class="popup-name">${biz.name}</div>
+    <div class="popup-address">${biz.address}</div>
+    <div class="popup-tags">${tags}</div>
+    <div class="popup-desc">${biz.description}</div>
+  `;
+}
 
-  function renderChips() {
-    filtersEl.querySelectorAll('.chip').forEach(el => el.remove());
+function renderMarkers() {
+  businesses.forEach(biz => {
+    const marker = L.marker([biz.lat, biz.lng], { icon: makeIcon(biz) }).bindPopup(popupHtmlFor(biz));
+    markerEntries.push({ biz, marker, group: L.layerGroup([marker]).addTo(map) });
+  });
+  allCategories = [...new Set(businesses.flatMap(b => b.categories))].sort();
+}
 
-    const allChip = document.createElement('button');
-    allChip.className = 'chip' + (active.size === 0 ? ' active' : '');
-    allChip.textContent = 'All';
-    allChip.onclick = () => { active.clear(); update(); };
-    filtersEl.insertBefore(allChip, countEl);
+function renderChips() {
+  filtersEl.querySelectorAll('.chip').forEach(el => el.remove());
 
-    allCategories.forEach(cat => {
-      const chip = document.createElement('button');
-      chip.className = 'chip' + (active.has(cat) ? ' active' : '');
-      chip.innerHTML = `${chipHtml(cat)} ${cat}`;
-      chip.onclick = () => {
-        if (active.has(cat)) active.delete(cat); else active.add(cat);
-        update();
-      };
-      filtersEl.insertBefore(chip, countEl);
-    });
-  }
+  const allChip = document.createElement('button');
+  allChip.className = 'chip' + (active.size === 0 ? ' active' : '');
+  allChip.textContent = 'All';
+  allChip.onclick = () => { active.clear(); update(); };
+  filtersEl.insertBefore(allChip, countEl);
 
-  function update() {
-    let shown = 0;
-    markerEntries.forEach(({ biz, group }) => {
-      const match = active.size === 0 || biz.categories.some(c => active.has(c));
-      if (match) { if (!map.hasLayer(group)) group.addTo(map); shown++; }
-      else { if (map.hasLayer(group)) map.removeLayer(group); }
-    });
-    countEl.textContent = businesses.length ? `${shown} of ${businesses.length} activations` : '';
-    renderChips();
-  }
+  allCategories.forEach(cat => {
+    const chip = document.createElement('button');
+    chip.className = 'chip' + (active.has(cat) ? ' active' : '');
+    chip.innerHTML = `${chipHtml(cat)} ${cat}`;
+    chip.onclick = () => {
+      if (active.has(cat)) active.delete(cat); else active.add(cat);
+      update();
+    };
+    filtersEl.insertBefore(chip, countEl);
+  });
+}
 
-  function showStatus(msg) {
-    statusEl.textContent = msg;
-    statusEl.classList.add('visible');
-  }
+// Rebuilds the card list below the map from the SAME filtered
+// `businesses` array the markers use (so it only ever shows
+// geocoded activations that also appear on the map), respecting
+// whichever category chips are currently active, sorted A–Z.
+function renderList() {
+  listEl.innerHTML = '';
+  const shownBiz = businesses.filter(biz => active.size === 0 || biz.categories.some(c => active.has(c)));
+  const sorted = [...shownBiz].sort((a, b) => a.name.localeCompare(b.name));
 
-  // ---- LOAD LIVE DATA FROM THE PUBLISHED SHEET --------------------------
-  // Column names must match your MapData tab's header row exactly.
-  fetch(SHEET_CSV_URL + '&cachebust=' + Date.now())
-    .then(res => {
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      return res.text();
-    })
-    .then(csvText => {
-      const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+  sorted.forEach(biz => {
+    const card = document.createElement('div');
+    card.className = 'event-card';
+    card.innerHTML = popupHtmlFor(biz);
+    listEl.appendChild(card);
+  });
 
-      let skippedNoCoords = 0;
-      let skippedNoCategory = [];
+  listSubEl.textContent = businesses.length ? `${sorted.length} of ${businesses.length} activations` : '';
+}
 
-      businesses = parsed.data
-        .map(row => {
-          const name = (row['Business Name'] || '').trim();
-          const address = (row['Business Address'] || '').trim();
-          const description = (row['Description/Notes'] || '').trim();
-          const rawCats = (row['Categories (choose all that apply)'] || '');
-          const categories = rawCats.split(',').map(canonicalCategory).filter(Boolean);
-          const lat = parseFloat(row['Lat']);
-          const lng = parseFloat(row['Long']);
+function update() {
+  let shown = 0;
+  markerEntries.forEach(({ biz, group }) => {
+    const match = active.size === 0 || biz.categories.some(c => active.has(c));
+    if (match) { if (!map.hasLayer(group)) group.addTo(map); shown++; }
+    else { if (map.hasLayer(group)) map.removeLayer(group); }
+  });
+  countEl.textContent = businesses.length ? `${shown} of ${businesses.length} activations` : '';
+  renderChips();
+  renderList();
+}
 
-          categories.forEach(c => {
-            if (!CATEGORY_META[c] && !skippedNoCategory.includes(c)) skippedNoCategory.push(c);
-          });
+function showStatus(msg) {
+  statusEl.textContent = msg;
+  statusEl.classList.add('visible');
+}
 
-          return { name, address, description, categories, lat, lng };
-        })
-        .filter(biz => {
-          if (!biz.name) return false;
-          if (isNaN(biz.lat) || isNaN(biz.lng)) { skippedNoCoords++; return false; }
-          return true;
+// ---- LOAD LIVE DATA FROM THE PUBLISHED SHEET --------------------------
+// Column names must match your MapData tab's header row exactly.
+fetch(SHEET_CSV_URL + '&cachebust=' + Date.now())
+  .then(res => {
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.text();
+  })
+  .then(csvText => {
+    const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+
+    let skippedNoCoords = 0;
+    let skippedNoCategory = [];
+
+    businesses = parsed.data
+      .map(row => {
+        const name = (row['Business Name'] || '').trim();
+        const address = (row['Business Address'] || '').trim();
+        const description = (row['Description/Notes'] || '').trim();
+        const rawCats = (row['Categories (choose all that apply)'] || '');
+        const categories = rawCats.split(',').map(canonicalCategory).filter(Boolean);
+        const lat = parseFloat(row['Lat']);
+        const lng = parseFloat(row['Long']);
+
+        categories.forEach(c => {
+          if (!CATEGORY_META[c] && !skippedNoCategory.includes(c)) skippedNoCategory.push(c);
         });
 
-      if (businesses.length === 0) {
-        showStatus(skippedNoCoords > 0
-          ? `${skippedNoCoords} sign-up(s) found, but none have Lat/Long yet — run the geocoding script.`
-          : 'No sign-ups yet — the map will fill in as businesses register.');
-      } else if (skippedNoCoords > 0) {
-        showStatus(`Showing ${businesses.length} — ${skippedNoCoords} more activations are pending.`);
-      }
+        return { name, address, description, categories, lat, lng };
+      })
+      .filter(biz => {
+        if (!biz.name) return false;
+        if (isNaN(biz.lat) || isNaN(biz.lng)) { skippedNoCoords++; return false; }
+        return true;
+      });
 
-      if (skippedNoCategory.length > 0) {
-        console.warn('Unrecognized categories (showing generic pin icon):', skippedNoCategory);
-      }
+    if (businesses.length === 0) {
+      showStatus(skippedNoCoords > 0
+        ? `${skippedNoCoords} sign-up(s) found, but none have Lat/Long yet — run the geocoding script.`
+        : 'No sign-ups yet — the map will fill in as businesses register.');
+    } else if (skippedNoCoords > 0) {
+      showStatus(`Showing ${businesses.length} — ${skippedNoCoords} more activations are pending.`);
+    }
 
-      renderMarkers();
-      update();
-    })
-    .catch(err => {
-      showStatus('Could not load business data from the sheet — check the published CSV link.');
-      console.error('Failed to load MapData sheet:', err);
-    });
+    if (skippedNoCategory.length > 0) {
+      console.warn('Unrecognized categories (showing generic pin icon):', skippedNoCategory);
+    }
+
+    renderMarkers();
+    update();
+  })
+  .catch(err => {
+    showStatus('Could not load business data from the sheet — check the published CSV link.');
+    console.error('Failed to load MapData sheet:', err);
+  });
 </script>
-
 </body>
 </html>
